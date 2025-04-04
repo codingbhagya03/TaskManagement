@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { SquarePen, Trash } from "lucide-react";
 
 const API_URL = "http://localhost:5000/api/tasks";
+const STATUS_URL = "http://localhost:5000/api/tasks/statuses"; // Add this URL for fetching statuses
 
 interface Task {
   _id?: string;
@@ -36,12 +37,14 @@ const TaskManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<{ _id: string, name: string }[]>([]);
+  const [statuses, setStatuses] = useState<string[]>([]); // State to hold available statuses
   const { toast } = useToast();
 
   useEffect(() => {
     checkAuth();
     fetchTasks();
     fetchProjects();
+    fetchStatuses(); // Fetch statuses from the backend
   }, []);
 
   const checkAuth = async () => {
@@ -89,6 +92,24 @@ const TaskManager: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to fetch projects",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchStatuses = async () => {
+    try {
+      const response = await axios.get(STATUS_URL, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      setStatuses(response.data); // Store the fetched statuses
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch statuses",
         variant: "destructive",
       });
     }
@@ -151,9 +172,7 @@ const TaskManager: React.FC = () => {
     <div>
       <h1>Task Manager</h1>
       <Card className="p-3 max-w-7xl mx-auto mt-6">
-        <CardHeader>
-          {/* <CardTitle>Task Manager</CardTitle> */}
-        </CardHeader>
+        <CardHeader></CardHeader>
 
         <CardContent>
           <div className="flex justify-between items-center mb-4">
@@ -207,14 +226,17 @@ const TaskManager: React.FC = () => {
                   <TableRow key={task._id}>
                     <TableCell>{task.title}</TableCell>
                     <TableCell>{task.projects}</TableCell>
-                    <TableCell>{task.status}</TableCell>
+                    <TableCell>
+                      <span className={`status-badge ${task.status.toLowerCase()}`}>
+                        {task.status}
+                      </span>
+                    </TableCell>
                     <TableCell>{task.priority}</TableCell>
                     <TableCell>{task.dueDate || "N/A"}</TableCell>
                     <TableCell className="space-x-2">
                       <div className="flex gap-4">
                         <SquarePen size={18} onClick={() => {
                           setCurrentTask(task); setOpen(true);
-                          setOpen(true);
                         }}
                           className="text-blue-500 hover:text-blue-700 cursor-pointer" />
                         <Trash size={18} onClick={() => handleDelete(task._id!)}
@@ -271,8 +293,9 @@ const TaskManager: React.FC = () => {
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
+                    {statuses.map(status => (
+                      <SelectItem key={status} value={status}>{status}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

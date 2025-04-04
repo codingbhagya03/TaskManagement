@@ -12,6 +12,19 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Add this to your existing routes
+
+// Get Available Status Options
+router.get("/statuses", async (req, res) => {
+  try {
+    const statuses = ["Pending", "Starting", "Completed"]; // Or you can fetch this from a database or config
+    res.status(200).json(statuses);
+  } catch (error) {
+    res.status(500).json({ error: "Error fetching statuses" });
+  }
+});
+
+
 router.get("/:timeRange", async (req, res) => {
   try {
     const { timeRange } = req.params; // week, month, year
@@ -59,19 +72,27 @@ router.get("/:timeRange", async (req, res) => {
 // Create New Task
 router.post("/", async (req, res) => {
   try {
-    console.log(req.body,"reqqqqqqq");
+    console.log(req.body, "Request Body");
     
-    const newTask = new Task(req.body);
-    console.log('newTask',newTask);
+    // Add missing required fields to match schema
+    const taskData = {
+      ...req.body,
+      date: new Date(), // Set to current date
+      completed: 0,     // Default values
+      pending: 1        // Default for new task
+    };
+    
+    const newTask = new Task(taskData);
+    console.log('New Task:', newTask);
     
     await newTask.save();
     res.status(201).json(newTask);
   } catch (error) {
-    console.log(error,'error');
-    
-    res.status(500).json({ error: "Error saving task" });
+    console.error('Error occurred while saving the task:', error);
+    res.status(500).json({ error: "Error saving task", message: error.message });
   }
 });
+
 
 // Update Task
 router.put("/:id", async (req, res) => {

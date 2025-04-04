@@ -6,6 +6,7 @@ import Projects from "@/components/dashboard/Projects";
 import Members from "@/components/dashboard/Members";
 import TodoList from "@/components/dashboard/TodoList";
 import TimeTracker from "@/components/dashboard/TimeTracker";
+import { Progress } from "@radix-ui/react-progress"; 
 
 const Dashboard: React.FC = () => {
   // Get current date
@@ -35,7 +36,35 @@ const Dashboard: React.FC = () => {
         
         <TimeTracker />
       </div>
-      
+      {/* Add Progress Bar for Today's Goal */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold">Today's Goal</h3>
+        <Progress value={60} max={100} className="w-full h-2 bg-gray-200 rounded-full">
+          <span className="sr-only">60% complete</span>
+        </Progress>
+        <p className="text-sm">60% of your daily goal has been completed.</p>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="flex flex-col items-center p-4 bg-white shadow-md rounded-lg">
+          <h4 className="text-xl font-semibold">Completed Tasks</h4>
+          <p className="text-2xl font-bold">35</p>
+        </div>
+        <div className="flex flex-col items-center p-4 bg-white shadow-md rounded-lg">
+          <h4 className="text-xl font-semibold">Active Users</h4>
+          <p className="text-2xl font-bold">12</p>
+        </div>
+        <div className="flex flex-col items-center p-4 bg-white shadow-md rounded-lg">
+          <h4 className="text-xl font-semibold">Ongoing Projects</h4>
+          <p className="text-2xl font-bold">5</p>
+        </div>
+        <div className="flex flex-col items-center p-4 bg-white shadow-md rounded-lg">
+          <h4 className="text-xl font-semibold">Pending Tasks</h4>
+          <p className="text-2xl font-bold">8</p>
+        </div>
+      </div>  {/* Add Recent Activity */}
+      <RecentActivity />
       <Stats />
       
       <div className="grid grid-cols-1 gap-6">

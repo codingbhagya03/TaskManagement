@@ -145,3 +145,21 @@ h1{
     font-size:x-large;
     font-weight:bolder;
 }
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  color: white;
+  font-weight: bold;
+}
+
+.status-badge.starting {
+  background-color: #28a745; /* Green */
+}
+
+.status-badge.pending {
+  background-color: #ffc107; /* Yellow */
+}
+
+.status-badge.completed {
+  background-color: #007bff; /* Blue */
+}
