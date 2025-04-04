@@ -1,0 +1,30 @@
+{
+  "name": "reactify-tasks-main-backend",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.4",
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "fs": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.13.1",
+    "mongoose": "^8.11.0",
+    "nodemailer": "^6.10.0",
+    "os": "^0.1.2"
+  },
+  "keywords": [],
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
