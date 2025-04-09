@@ -57,7 +57,7 @@ const TaskManager: React.FC = () => {
     fetchTasks();
     fetchProjects();
     fetchStatuses();
-    fetchUsers(); 
+    fetchUsers();
   }, []);
 
   const checkAuth = async () => {
@@ -137,7 +137,7 @@ const TaskManager: React.FC = () => {
         }
       });
       setUsers(response.data);
-      
+
       // Create options for React Select
       const options = response.data.map((user: User) => ({
         value: user.name,
@@ -262,8 +262,8 @@ const TaskManager: React.FC = () => {
 
           {!isLoading && !error && filteredTasks.length === 0 && (
             <p className="text-gray-500 text-center py-4">
-              {activeTab === "all" 
-                ? "No tasks available. Click \"Add Task\" to create one." 
+              {activeTab === "all"
+                ? "No tasks available. Click \"Add Task\" to create one."
                 : `No ${activeTab} tasks available.`}
             </p>
           )}
@@ -272,38 +272,36 @@ const TaskManager: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Assigned Users</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="w-[230px]">Title</TableHead>
+                  <TableHead className="w-[150px]">Project</TableHead>
+                  <TableHead className="w-[100px]">Status</TableHead>
+                  <TableHead className="w-[70px]">Priority</TableHead>
+                  <TableHead className="w-[200px]">Assigned Users</TableHead>
+                  <TableHead className="w-[120px]">Due Date</TableHead>
+                  <TableHead className="w-[100px] text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {filteredTasks.map(task => (
                   <TableRow key={task._id}>
-                    <TableCell>{task.title}</TableCell>
-                    <TableCell>{task.projects}</TableCell>
-                    <TableCell>
+                    <TableCell className="w-[230px]">{task.title}</TableCell>
+                    <TableCell className="w-[150px]">{task.projects}</TableCell>
+                    <TableCell className="w-[100px]">
                       <span className={`status-badge ${task.status.toLowerCase()}`}>
                         {task.status}
                       </span>
                     </TableCell>
-                    <TableCell>{task.priority}</TableCell>
-                    <TableCell>
-                      {task.assignedUsers && task.assignedUsers.length > 0 
-                        ? task.assignedUsers.join(", ") 
-                        : "Unassigned"}
+                    <TableCell className="w-[70px]">{task.priority}</TableCell>
+                    <TableCell className="w-[200px]">
+                      {task.assignedUsers?.length > 0 ? task.assignedUsers.join(", ") : "Unassigned"}
                     </TableCell>
-                    <TableCell>{task.dueDate || "N/A"}</TableCell>
-                    <TableCell className="space-x-2">
-                      <div className="flex gap-4">
+                    <TableCell className="w-[120px]">{task.dueDate || "N/A"}</TableCell>
+                    <TableCell className="w-[100px] text-center">
+                      <div className="flex justify-center gap-4">
                         <SquarePen size={18} onClick={() => {
                           setCurrentTask(task); setOpen(true);
-                        }}
-                          className="text-blue-500 hover:text-blue-700 cursor-pointer" />
+                        }} className="text-blue-500 hover:text-blue-700 cursor-pointer" />
                         <Trash size={18} onClick={() => handleDelete(task._id!)}
                           className="text-red-500 hover:text-red-700 cursor-pointer" />
                       </div>
@@ -311,6 +309,7 @@ const TaskManager: React.FC = () => {
                   </TableRow>
                 ))}
               </TableBody>
+
             </Table>
           )}
         </CardContent>
@@ -397,7 +396,7 @@ const TaskManager: React.FC = () => {
                   isMulti
                   name="assignedUsers"
                   options={userOptions}
-                  value={userOptions.filter(option => 
+                  value={userOptions.filter(option =>
                     currentTask?.assignedUsers?.includes(option.value)
                   )}
                   onChange={(selectedOptions) => {
