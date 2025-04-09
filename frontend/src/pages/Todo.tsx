@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,11 @@ import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { SquarePen, Trash } from "lucide-react";
+import SelectReact from "react-select";
 
 const API_URL = "http://localhost:5000/api/tasks";
-const STATUS_URL = "http://localhost:5000/api/tasks/statuses"; // Add this URL for fetching statuses
+const STATUS_URL = "http://localhost:5000/api/tasks/statuses";
+const USERS_API_URL = "http://localhost:5000/api/members";
 
 interface Task {
   _id?: string;
@@ -23,11 +25,18 @@ interface Task {
   priority: string;
   startDate: string;
   dueDate: string;
-  assignedUser: string;
+  assignedUsers: string[];
   createdAt?: string;
 }
 
-const users = ["Alice", "Bob", "Charlie", "David", "Eve"];
+interface User {
+  _id?: string;
+  name: string;
+  roles: string[];
+  email: string;
+  timeToday?: number;
+  timeThisWeek?: number;
+}
 
 const TaskManager: React.FC = () => {
   const navigate = useNavigate();
@@ -37,14 +46,18 @@ const TaskManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<{ _id: string, name: string }[]>([]);
-  const [statuses, setStatuses] = useState<string[]>([]); // State to hold available statuses
+  const [statuses, setStatuses] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState("all");
+  const [users, setUsers] = useState<User[]>([]); // State to store users from API
+  const [userOptions, setUserOptions] = useState<{ value: string, label: string }[]>([]); // Options for React Select
   const { toast } = useToast();
 
   useEffect(() => {
     checkAuth();
     fetchTasks();
     fetchProjects();
-    fetchStatuses(); // Fetch statuses from the backend
+    fetchStatuses();
+    fetchUsers(); 
   }, []);
 
   const checkAuth = async () => {
@@ -105,11 +118,36 @@ const TaskManager: React.FC = () => {
           'Content-Type': 'application/json'
         }
       });
-      setStatuses(response.data); // Store the fetched statuses
+      setStatuses(response.data);
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to fetch statuses",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(USERS_API_URL, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      setUsers(response.data);
+      
+      // Create options for React Select
+      const options = response.data.map((user: User) => ({
+        value: user.name,
+        label: user.name
+      }));
+      setUserOptions(options);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch users",
         variant: "destructive",
       });
     }
@@ -168,6 +206,22 @@ const TaskManager: React.FC = () => {
     }
   };
 
+  // Filter tasks based on active tab
+  const getFilteredTasks = () => {
+    switch (activeTab) {
+      case "starting":
+        return tasks.filter(task => task.status.toLowerCase() === "starting");
+      case "pending":
+        return tasks.filter(task => task.status.toLowerCase() === "pending");
+      case "completed":
+        return tasks.filter(task => task.status.toLowerCase() === "completed");
+      default:
+        return tasks;
+    }
+  };
+
+  const filteredTasks = getFilteredTasks();
+
   return (
     <div>
       <h1>Task Manager</h1>
@@ -176,9 +230,10 @@ const TaskManager: React.FC = () => {
 
         <CardContent>
           <div className="flex justify-between items-center mb-4">
-            <Tabs defaultValue="all" className="flex-1">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
               <TabsList>
                 <TabsTrigger value="all">All Tasks</TabsTrigger>
+                <TabsTrigger value="starting">Starting</TabsTrigger>
                 <TabsTrigger value="pending">Pending</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>
               </TabsList>
@@ -191,7 +246,7 @@ const TaskManager: React.FC = () => {
                   projects: "",
                   status: "Pending",
                   priority: "medium",
-                  assignedUser: "",
+                  assignedUsers: [], // Initialize as empty array
                   startDate: "",
                   dueDate: ""
                 });
@@ -205,11 +260,15 @@ const TaskManager: React.FC = () => {
           {isLoading && <div className="text-center py-4">Loading tasks...</div>}
           {error && <div className="text-red-500 py-4">{error}</div>}
 
-          {!isLoading && !error && tasks.length === 0 && (
-            <p className="text-gray-500 text-center py-4">No tasks available. Click "Add Task" to create one.</p>
+          {!isLoading && !error && filteredTasks.length === 0 && (
+            <p className="text-gray-500 text-center py-4">
+              {activeTab === "all" 
+                ? "No tasks available. Click \"Add Task\" to create one." 
+                : `No ${activeTab} tasks available.`}
+            </p>
           )}
 
-          {!isLoading && !error && tasks.length > 0 && (
+          {!isLoading && !error && filteredTasks.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -217,12 +276,13 @@ const TaskManager: React.FC = () => {
                   <TableHead>Project</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
+                  <TableHead>Assigned Users</TableHead>
                   <TableHead>Due Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasks.map(task => (
+                {filteredTasks.map(task => (
                   <TableRow key={task._id}>
                     <TableCell>{task.title}</TableCell>
                     <TableCell>{task.projects}</TableCell>
@@ -232,6 +292,11 @@ const TaskManager: React.FC = () => {
                       </span>
                     </TableCell>
                     <TableCell>{task.priority}</TableCell>
+                    <TableCell>
+                      {task.assignedUsers && task.assignedUsers.length > 0 
+                        ? task.assignedUsers.join(", ") 
+                        : "Unassigned"}
+                    </TableCell>
                     <TableCell>{task.dueDate || "N/A"}</TableCell>
                     <TableCell className="space-x-2">
                       <div className="flex gap-4">
@@ -327,20 +392,21 @@ const TaskManager: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Assigned User</Label>
-                <Select
-                  value={currentTask?.assignedUser || ""}
-                  onValueChange={value => setCurrentTask({ ...currentTask, assignedUser: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select user" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map(user => (
-                      <SelectItem key={user} value={user}>{user}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Assigned Users</Label>
+                <SelectReact
+                  isMulti
+                  name="assignedUsers"
+                  options={userOptions}
+                  value={userOptions.filter(option => 
+                    currentTask?.assignedUsers?.includes(option.value)
+                  )}
+                  onChange={(selectedOptions) => {
+                    const assignedUsers = selectedOptions.map(option => option.value);
+                    setCurrentTask({ ...currentTask, assignedUsers });
+                  }}
+                  className="basic-multi-select"
+                  classNamePrefix="select"
+                />
               </div>
 
               <div className="flex justify-end space-x-2">

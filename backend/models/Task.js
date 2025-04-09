@@ -15,7 +15,7 @@ const TaskSchema = new mongoose.Schema({
   },
   startDate: { type: String },
   dueDate: { type: String },
-  assignedUser: { type: String },
+  assignedUsers: [{ type: String }],
   completed: { type: Boolean, default: false },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee" },
   
