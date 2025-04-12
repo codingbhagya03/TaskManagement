@@ -6,7 +6,7 @@ const router = express.Router();
 // ✅ Create a new timesheet entry (User ID from req.user.id)
 router.post("/", async (req, res) => {
   try {
-    const { projectId, projectName, taskId, taskName, date, startTime, endTime, duration } = req.body;
+    const { memberId, userName, date, startTime, endTime, duration } = req.body;
     
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -16,7 +16,6 @@ router.post("/", async (req, res) => {
     let calculatedDuration = duration;
     if (!calculatedDuration && startTime && endTime) {
       // Simple duration calculation logic
-      // This is a placeholder - you'd want to implement actual time calculation
       const [startHour, startMin] = startTime.split(":").map(Number);
       const [endHour, endMin] = endTime.split(":").map(Number);
       
@@ -37,10 +36,8 @@ router.post("/", async (req, res) => {
     
     const newEntry = new TimesheetEntry({
       userId: req.user.id, // ✅ Authenticated User ID
-      projectId,
-      projectName,
-      taskId,
-      taskName,
+      memberId,
+      userName,
       date,
       startTime,
       endTime,
@@ -73,7 +70,7 @@ router.get("/", async (req, res) => {
 // Update a timesheet entry
 router.put("/:id", async (req, res) => {
   try {
-    const { projectId, projectName, taskId, taskName, date, startTime, endTime, duration } = req.body;
+    const { memberId, userName, date, startTime, endTime, duration } = req.body;
     
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -94,7 +91,6 @@ router.put("/:id", async (req, res) => {
     let calculatedDuration = duration;
     if (!calculatedDuration && startTime && endTime) {
       // Simple duration calculation logic
-      // This is a placeholder - you'd want to implement actual time calculation
       const [startHour, startMin] = startTime.split(":").map(Number);
       const [endHour, endMin] = endTime.split(":").map(Number);
       
@@ -114,10 +110,8 @@ router.put("/:id", async (req, res) => {
     }
     
     // Update the entry
-    entry.projectId = projectId;
-    entry.projectName = projectName;
-    entry.taskId = taskId;
-    entry.taskName = taskName;
+    entry.memberId = memberId;
+    entry.userName = userName;
     entry.date = date;
     entry.startTime = startTime;
     entry.endTime = endTime;

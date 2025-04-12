@@ -1,4 +1,4 @@
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast" 
 import {
   Toast,
   ToastClose,
@@ -10,7 +10,7 @@ import {
 
 export function Toaster() {
   const { toasts } = useToast()
-
+  
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
@@ -27,7 +27,8 @@ export function Toaster() {
           </Toast>
         )
       })}
-      <ToastViewport className="toast-viewport" />
+      <ToastViewport />
     </ToastProvider>
   )
 }
+

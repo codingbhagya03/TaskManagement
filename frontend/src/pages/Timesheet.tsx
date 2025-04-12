@@ -37,13 +37,9 @@ const Timesheet = () => {
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [timeEntries, setTimeEntries] = useState([]);
 
-  // Simplified state - removed redundant variables
-  const [projects, setProjects] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [filteredTasks, setFilteredTasks] = useState([]);
-
-  const [selectedProject, setSelectedProject] = useState("");
-  const [selectedTask, setSelectedTask] = useState("");
+  // Replace projects and tasks with users
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
 
@@ -55,46 +51,20 @@ const Timesheet = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // API URLs
-  const PROJECT_API_URL = "http://localhost:5000/api/projects";
-  const TASK_API_URL = "http://localhost:5000/api/tasks";
+  const USER_API_URL = "http://localhost:5000/api/members";
   const TIMESHEET_API_URL = "http://localhost:5000/api/timesheets";
 
-  const fetchProjects = async () => {
+  const fetchUsers = async () => {
     try {
-      const response = await axios.get(PROJECT_API_URL, { withCredentials: true });
-      setProjects(response.data);
+      const response = await axios.get(USER_API_URL, { withCredentials: true });
+      setUsers(response.data);
     } catch (error) {
-      console.error("Error fetching projects:", error);
-    }
-  };
-
-  const fetchTasks = async () => {
-    try {
-      setIsLoading(true); // Add loading state
-      const tasksResponse = await axios.get(TASK_API_URL, {
-        withCredentials: true,
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (tasksResponse.data) {
-        setTasks(tasksResponse.data);
-        
-        // Update filtered tasks based on current project selection
-        if (selectedProject) {
-          setFilteredTasks(tasksResponse.data.filter(task => task.projectId === selectedProject));
-        } else {
-          setFilteredTasks(tasksResponse.data);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
+      console.error("Error fetching users:", error);
       toast({
         title: "Error",
-        description: "Failed to load task data. Please try again later.",
+        description: "Failed to load user data. Please try again later.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -111,72 +81,17 @@ const Timesheet = () => {
     }
   };
 
-  // Filter tasks based on selected project
-  const filterTasksByProject = (projectId) => {
-    try {
-      if (!projectId) {
-        setFilteredTasks(tasks);
-        return;
-      }
-      
-      const filtered = tasks.filter((task) => task.projectId === projectId);
-      
-      // Handle case where no tasks match the project
-      if (filtered.length === 0) {
-        toast({
-          title: "No Tasks Available",
-          description: "There are no tasks associated with this project. Please create a task first or select a different project.",
-          variant: "destructive", // Changed from "warning" to "destructive"
-          duration: 5000, // Increase duration so users have time to read it
-        });
-      }
-      
-      setFilteredTasks([{
-        _id: "no-tasks", 
-        name: "No tasks available for this project",
-        projectId: projectId
-      }]);
-    } catch (error) {
-      console.error("Error filtering tasks:", error);
-      // Fallback to showing all tasks in case of error
-      setFilteredTasks(tasks);
-      setSelectedTask("");
-    }
-  };
-
-  // Handle Project Change
-  const handleProjectChange = (projectId) => {
-    setSelectedProject(projectId);
-    filterTasksByProject(projectId);
-    setSelectedTask(""); // Reset task selection
-  };
-
   useEffect(() => {
-    fetchProjects();
-    fetchTasks();
+    fetchUsers();
     fetchTimesheets();
   }, []);
 
-  // Update filtered tasks when tasks array changes
-  useEffect(() => {
-    if (selectedProject) {
-      // If a project is selected, filter tasks by that project
-      filterTasksByProject(selectedProject);
-    } else {
-      // If no project is selected, show all tasks
-      setFilteredTasks(tasks);
-    }
-  }, [tasks, selectedProject]);
-
   const resetForm = () => {
-    setSelectedProject("");
-    setSelectedTask("");
+    setSelectedUser("");
     setStartTime("");
     setEndTime("");
     setIsEditing(false);
     setEditingEntry(null);
-    // Reset filtered tasks to show all tasks
-    setFilteredTasks(tasks);
   };
 
   // Calculate duration from start and end times
@@ -203,18 +118,15 @@ const Timesheet = () => {
 
   // Add a new time entry or update existing one
   const saveTimeEntry = async () => {
-    if (!selectedProject || !selectedTask || !startTime || !endTime) {
+    if (!selectedUser || !startTime || !endTime) {
       toast({ title: "Missing Info", description: "Please fill in all fields", variant: "destructive" });
       return;
     }
 
-    const projectObj = projects.find((p) => p._id === selectedProject);
-    const taskObj = tasks.find((t) => t._id === selectedTask);
+    const userObj = users.find((u) => u._id === selectedUser);
     const entryData = {
-      projectId: selectedProject,
-      projectName: projectObj?.name || "",
-      taskId: selectedTask,
-      taskName: taskObj?.name || "",
+      userId: selectedUser,
+      userName: userObj?.name || "",
       date: format(date, "yyyy-MM-dd"),
       startTime,
       endTime,
@@ -246,9 +158,7 @@ const Timesheet = () => {
   // Edit existing entry
   const editEntry = (entry) => {
     setEditingEntry(entry);
-    setSelectedProject(entry.projectId);
-    filterTasksByProject(entry.projectId);
-    setSelectedTask(entry.taskId);
+    setSelectedUser(entry.userId);
     setDate(new Date(entry.date));
     setStartTime(entry.startTime);
     setEndTime(entry.endTime);
@@ -343,30 +253,16 @@ const Timesheet = () => {
           <CardTitle>Time Tracker</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
-            <Select value={selectedProject} onValueChange={handleProjectChange}>
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select Project" />
+                  <SelectValue placeholder="Select User" />
                 </SelectTrigger>
                 <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project._id} value={project._id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="md:col-span-2">
-              <Select value={selectedTask} onValueChange={setSelectedTask} disabled={!selectedProject}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Task" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredTasks.map((task) => (
-                    <SelectItem key={task._id} value={task._id}>
-                      {task.name}
+                  {users.map((user) => (
+                    <SelectItem key={user._id} value={user._id}>
+                      {user.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -378,7 +274,7 @@ const Timesheet = () => {
                 variant={isTracking ? "destructive" : "default"}
                 size="icon"
                 onClick={isTracking ? stopTimer : startTimer}
-                disabled={isTracking ? false : (!selectedProject || !selectedTask)}
+                disabled={isTracking ? false : !selectedUser}
               >
                 {isTracking ? <Pause size={16} /> : <Play size={16} />}
               </Button>
@@ -403,8 +299,7 @@ const Timesheet = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Task</TableHead>
+                  <TableHead>User</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Start Time</TableHead>
                   <TableHead>End Time</TableHead>
@@ -415,15 +310,14 @@ const Timesheet = () => {
               <TableBody>
                 {timeEntries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
                       No time entries found. Start tracking your time!
                     </TableCell>
                   </TableRow>
                 ) : (
                   timeEntries.map((entry) => (
                     <TableRow key={entry._id}>
-                      <TableCell>{entry.projectName}</TableCell>
-                      <TableCell>{entry.taskName}</TableCell>
+                      <TableCell>{entry.userName}</TableCell>
                       <TableCell>{format(new Date(entry.date), "MMM dd, yyyy")}</TableCell>
                       <TableCell>{entry.startTime}</TableCell>
                       <TableCell>{entry.endTime}</TableCell>
@@ -484,33 +378,16 @@ const Timesheet = () => {
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <label className="text-right">Project</label>
+              <label className="text-right">User</label>
               <div className="col-span-3">
-                <Select value={selectedProject} onValueChange={handleProjectChange}>
+                <Select value={selectedUser} onValueChange={setSelectedUser}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Project" />
+                    <SelectValue placeholder="Select User" />
                   </SelectTrigger>
                   <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project._id} value={project._id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label className="text-right">Task</label>
-              <div className="col-span-3">
-                <Select value={selectedTask} onValueChange={setSelectedTask} disabled={!selectedProject}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Task" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredTasks.map((task) => (
-                      <SelectItem key={task._id} value={task._id}>
-                        {task.name}
+                    {users.map((user) => (
+                      <SelectItem key={user._id} value={user._id}>
+                        {user.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
