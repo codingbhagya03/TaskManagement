@@ -5,7 +5,7 @@ import RecentActivity from "@/components/dashboard/RecentActivity";
 import Projects from "@/components/dashboard/Projects";
 import Members from "@/components/dashboard/Members";
 import TodoList from "@/components/dashboard/TodoList";
-import TimeTracker from "@/components/dashboard/TimeTracker";
+// import TimeTracker from "@/components/dashboard/TimeTracker";
 import { Progress } from "@radix-ui/react-progress"; 
 
 const Dashboard: React.FC = () => {
@@ -34,16 +34,10 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
         
-        <TimeTracker />
+        {/* <TimeTracker /> */}
       </div>
       {/* Add Progress Bar for Today's Goal */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold">Today's Goal</h3>
-        <Progress value={60} max={100} className="w-full h-2 bg-gray-200 rounded-full">
-          <span className="sr-only">60% complete</span>
-        </Progress>
-        <p className="text-sm">60% of your daily goal has been completed.</p>
-      </div>
+      
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">

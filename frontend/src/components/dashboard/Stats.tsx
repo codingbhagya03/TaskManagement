@@ -5,6 +5,8 @@ import axios from "axios";
 
 const Stats: React.FC = () => {
   const [projectCount, setProjectCount] = useState<number>(0);
+  const [taskCount, setTaskCount] = useState<number>(0);
+  const [userCount, setUserCount] = useState<number>(0);
   const navigate = useNavigate();
 
   // Fetch the number of projects
@@ -17,8 +19,28 @@ const Stats: React.FC = () => {
     }
   };
 
+  const fetchUserCount = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/members", { withCredentials: true });
+      setUserCount(response.data.length);  // Assuming response is an array of projects
+    } catch (error) {
+      console.error("Error fetching project count:", error);
+    }
+  };
+
+  const fetchTaskCount = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/api/tasks", { withCredentials: true });
+      setTaskCount(response.data.length);  // Assuming response is an array of projects
+    } catch (error) {
+      console.error("Error fetching project count:", error);
+    }
+  };
+
   useEffect(() => {
     fetchProjectCount(); // Fetch the project count when the component mounts
+    fetchTaskCount();
+    fetchUserCount();
   }, []);
 
   // Format time from minutes to HH:MM:SS
@@ -33,22 +55,32 @@ const Stats: React.FC = () => {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div className="stat-card animate-fade-in [animation-delay:100ms]">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-medium">Weekly Activity</h3>
-          <div className="w-10 h-10 rounded-md bg-yellow-50 flex items-center justify-center">
-            <Calendar size={20} className="text-yellow-500" />
+          <h3 className="text-lg font-medium">Users</h3>
+          <div className="relative">
+            <button className="text-black font-bold focus:outline-none" onClick={() => navigate("/user")}>:</button>
           </div>
         </div>
-        <p className="text-4xl font-bold">75%</p> {/* You can replace this with the actual weeklyActivity data */}
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-4xl font-bold">{userCount < 10 ? `0${userCount}` : userCount}</p>
+          <div className="w-12 h-12 rounded-md bg-yellow-50 flex items-center justify-center">
+            <Folder size={28} className="text-yellow-500" />
+          </div>
+        </div>
       </div>
 
       <div className="stat-card animate-fade-in [animation-delay:200ms]">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-medium">Worked This Week</h3>
-          <div className="w-10 h-10 rounded-md bg-yellow-50 flex items-center justify-center">
-            <Clock size={20} className="text-yellow-500" />
+          <h3 className="text-lg font-medium">Tasks</h3>
+          <div className="relative">
+            <button className="text-black font-bold focus:outline-none" onClick={() => navigate("/todo")}>:</button>
           </div>
         </div>
-        <p className="text-4xl font-bold">{formatTime(120)}</p> {/* Replace with actual weekly time */}
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-4xl font-bold">{taskCount < 10 ? `0${taskCount}` : taskCount}</p>
+          <div className="w-12 h-12 rounded-md bg-yellow-50 flex items-center justify-center">
+            <Folder size={28} className="text-yellow-500" />
+          </div>
+        </div>
       </div>
 
       <div className="stat-card animate-fade-in [animation-delay:300ms]">
