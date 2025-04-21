@@ -12,7 +12,8 @@ const memberRoutes = require("./routes/memberRoutes");
 const timesheetRoutes = require("./routes/timesheetRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const authRoutes = require("./routes/authRoutes");
-const taskCategoryRoutes = require("./routes/taskCategoryRoutes")
+const taskCategoryRoutes = require("./routes/taskCategoryRoutes");
+const verificationRoutes = require("./routes/verificationRoutes"); // Add this import
 
 const app = express();
 
@@ -265,13 +266,14 @@ app.use("/auth", authRoutes); // Add this line
 
 // ✅ 🟢 **Todo Routes (Task Management)**
 app.use("/api/todos", authMiddleware, todoRoutes);
-app.use("/api/tasks", taskRoutes);
+app.use("/api/tasks", authMiddleware, taskRoutes);
 app.use("/api/projects", authMiddleware, projectRoutes);
 app.use("/api/members", memberRoutes);
 // app.use("/api/members/roles", memberRoutes);
 app.use("/api/timesheets", authMiddleware, timesheetRoutes);
 app.use("/api/events", authMiddleware, eventRoutes);
-app.use("/api/taskcategories", taskCategoryRoutes)
+app.use("/api/taskcategories", taskCategoryRoutes);
+app.use("/api/verification", authMiddleware, verificationRoutes); // Uncommented and added authMiddleware
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;

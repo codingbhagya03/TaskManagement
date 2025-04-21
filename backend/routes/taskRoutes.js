@@ -8,23 +8,22 @@ router.get("/", async (req, res) => {
     const tasks = await Task.find();
     res.status(200).json(tasks);
   } catch (error) {
-    res.status(500).json({ error: "Error fetching tasks" });
+    console.error("Error fetching tasks:", error);
+    res.status(500).json({ error: "Error fetching tasks", details: error.message });
   }
 });
-
-// Add this to your existing routes
 
 // Get Available Status Options
 router.get("/statuses", async (req, res) => {
   try {
-    const statuses = ["Pending", "Starting", "Completed"]; // Or you can fetch this from a database or config
+    const statuses = ["Pending", "Starting", "Completed"];
     res.status(200).json(statuses);
   } catch (error) {
     res.status(500).json({ error: "Error fetching statuses" });
   }
 });
 
-
+// Get Tasks by Time Range
 router.get("/:timeRange", async (req, res) => {
   try {
     const { timeRange } = req.params; // week, month, year
@@ -37,7 +36,7 @@ router.get("/:timeRange", async (req, res) => {
     } else if (timeRange === "year") {
       startDate.setFullYear(startDate.getFullYear() - 1);
     }
-
+    
     const tasks = await Task.aggregate([
       {
         $match: {
@@ -51,35 +50,53 @@ router.get("/:timeRange", async (req, res) => {
           pending: { $sum: "$pending" },
         }
       },
-      { $sort: { "_id": 1 } }, // Sort by day of the week
+      { $sort: { "_id": 1 } },
     ]);
-
-    // Map days from numbers to readable weekday names
+    
     const dayMap = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const formattedTasks = tasks.map(task => ({
-      name: dayMap[task._id - 1],  // Convert numeric day to string (1 = Sunday)
+      name: dayMap[task._id - 1],
       completed: task.completed,
       pending: task.pending
     }));
-
+    
     res.json(formattedTasks);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error fetching task data" });
+    console.error("Error fetching task data:", error);
+    res.status(500).json({ message: "Error fetching task data", details: error.message });
   }
 });
 
 // Create New Task
 router.post("/", async (req, res) => {
   try {
-    console.log(req.body, "Request Body");
+    console.log("Request Body:", req.body);
     
-    // Add missing required fields to match schema
+    // Validate required fields
+    if (!req.body.title) {
+      return res.status(400).json({ error: "Title is required" });
+    }
+    if (!req.body.projects) {
+      return res.status(400).json({ error: "Project is required" });
+    }
+    if (!req.body.status) {
+      return res.status(400).json({ error: "Status is required" });
+    }
+    if (!req.body.priority) {
+      return res.status(400).json({ error: "Priority is required" });
+    }
+    
+    // Set appropriate defaults and format for the task
     const taskData = {
       ...req.body,
-      date: new Date(), // Set to current date
-      completed: 0,     // Default values
-      pending: 1        // Default for new task
+      date: new Date(),
+      // Set completed/pending based on status
+      completed: req.body.status === "Completed" ? 1 : 0,
+      pending: req.body.status === "Completed" ? 0 : 1,
+      // Ensure assignedUsers is an array
+      assignedUsers: Array.isArray(req.body.assignedUsers) 
+        ? req.body.assignedUsers 
+        : (req.body.assignedUsers ? [req.body.assignedUsers] : [])
     };
     
     const newTask = new Task(taskData);
@@ -89,21 +106,35 @@ router.post("/", async (req, res) => {
     res.status(201).json(newTask);
   } catch (error) {
     console.error('Error occurred while saving the task:', error);
-    res.status(500).json({ error: "Error saving task", message: error.message });
+    res.status(500).json({ 
+      error: "Error saving task", 
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+    });
   }
 });
-
 
 // Update Task
 router.put("/:id", async (req, res) => {
   try {
-    const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    // Format data for update
+    const updateData = {
+      ...req.body,
+      // Update completed/pending based on status (if status was updated)
+      ...(req.body.status && {
+        completed: req.body.status === "Completed" ? 1 : 0,
+        pending: req.body.status === "Completed" ? 0 : 1
+      })
+    };
+
+    const task = await Task.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!task) {
       return res.status(404).json({ error: "Task not found" });
     }
     res.json(task);
   } catch (error) {
-    res.status(500).json({ error: "Error updating task" });
+    console.error("Error updating task:", error);
+    res.status(500).json({ error: "Error updating task", details: error.message });
   }
 });
 
@@ -116,7 +147,8 @@ router.delete("/:id", async (req, res) => {
     }
     res.json({ message: "Task deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: "Error deleting task" });
+    console.error("Error deleting task:", error);
+    res.status(500).json({ error: "Error deleting task", details: error.message });
   }
 });
 

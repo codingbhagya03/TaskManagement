@@ -6,10 +6,27 @@ const router = express.Router();
 // ✅ Create a new timesheet entry (User ID from req.user.id)
 router.post("/", async (req, res) => {
   try {
-    const { memberId, userName, date, startTime, endTime, duration } = req.body;
+    const { 
+      memberId, 
+      userName, 
+      date, 
+      startTime, 
+      endTime, 
+      duration, 
+      locationVerified,
+      faceVerified,
+      location
+    } = req.body;
     
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Ensure verification is complete
+    if (!locationVerified || !faceVerified) {
+      return res.status(403).json({ 
+        message: "Location and face verification required before creating timesheet entry" 
+      });
     }
     
     // Calculate duration if not provided
@@ -42,6 +59,10 @@ router.post("/", async (req, res) => {
       startTime,
       endTime,
       duration: calculatedDuration,
+      locationVerified,
+      faceVerified,
+      verificationTimestamp: new Date(),
+      location: location || null
     });
     
     await newEntry.save();
@@ -70,7 +91,15 @@ router.get("/", async (req, res) => {
 // Update a timesheet entry
 router.put("/:id", async (req, res) => {
   try {
-    const { memberId, userName, date, startTime, endTime, duration } = req.body;
+    const { 
+      memberId, 
+      userName, 
+      date, 
+      startTime, 
+      endTime, 
+      duration, 
+      notes 
+    } = req.body;
     
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -116,6 +145,7 @@ router.put("/:id", async (req, res) => {
     entry.startTime = startTime;
     entry.endTime = endTime;
     entry.duration = calculatedDuration;
+    entry.notes = notes;
     
     await entry.save();
     
