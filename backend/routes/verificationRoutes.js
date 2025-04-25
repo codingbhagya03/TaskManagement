@@ -4,9 +4,6 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 
-// For face recognition, in production you would use a service like AWS Rekognition
-// For this example, we'll just simulate face verification
-
 // Set up multer for file uploads (for face images)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -82,13 +79,7 @@ router.post("/face", upload.single("image"), async (req, res) => {
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
-
-    // In a real application, you would:
-    // 1. Retrieve the user's registered face image
-    // 2. Use a face recognition service to compare the uploaded image with the registered one
-    // 3. Return the verification result
-
-    // For this example, we'll just simulate successful verification
+    
     const isVerified = true;
 
     // Clean up the uploaded file

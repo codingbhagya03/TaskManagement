@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 
 const router = express.Router();
 
-// ✅ Middleware to check authentication
+// Middleware to check authentication
 const authMiddleware = (req, res, next) => {
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ message: "Unauthorized" });
@@ -12,22 +12,22 @@ const authMiddleware = (req, res, next) => {
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) return res.status(401).json({ message: "Invalid token" });
 
-    req.user.id = decoded.id; // ✅ Save userId for later use
+    req.user.id = decoded.id; // Save userId for later use
     next();
   });
 };
 
-// 🟢 **1. Get all Todos (User-Specific)**
+//Get all Todos (User-Specific)
 router.get("/todos", authMiddleware, async (req, res) => {
   try {
-    const todos = await Todo.find({ userId: req.user.id }); // 🔥 Fetch user-specific todos
+    const todos = await Todo.find({ userId: req.user.id }); // Fetch user-specific todos
     res.json(todos);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 🟢 **2. Add a New Todo**
+//Add a New Todo
 router.post("/todos", authMiddleware, async (req, res) => {
   try {
     const { title, description } = req.body;
@@ -52,7 +52,7 @@ router.post("/todos", authMiddleware, async (req, res) => {
     });
   }
 });
-// 🟡 **3. Update a Todo (Complete/Uncomplete)**
+
 router.put("/todos/:id", authMiddleware, async (req, res) => {
   try {
     const { completed } = req.body;
@@ -67,7 +67,7 @@ router.put("/todos/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// 🔴 **4. Delete a Todo**
+
 router.delete("/todos/:id", authMiddleware, async (req, res) => {
   try {
     await Todo.findByIdAndDelete(req.params.id);

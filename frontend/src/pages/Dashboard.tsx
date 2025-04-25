@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
       
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+      {/* <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
         <div className="flex flex-col items-center p-4 bg-white shadow-md rounded-lg">
           <h4 className="text-xl font-semibold">Completed Tasks</h4>
           <p className="text-2xl font-bold">35</p>
@@ -57,7 +57,7 @@ const Dashboard: React.FC = () => {
           <h4 className="text-xl font-semibold">Pending Tasks</h4>
           <p className="text-2xl font-bold">8</p>
         </div>
-      </div>  {/* Add Recent Activity */}
+      </div>  Add Recent Activity */}
       <RecentActivity />
       <Stats />
       
