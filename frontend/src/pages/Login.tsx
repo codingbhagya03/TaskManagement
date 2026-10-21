@@ -90,9 +90,12 @@ const Login: React.FC = () => {
       } else {
         toast.error("Invalid response from server");
       }
-    } catch (error: any) {
-      console.error("Login Error:", error.response?.data || error.message);
-      toast.error(error.response?.data?.message || "Login failed! Check your credentials.");
+    } catch (error: unknown) {
+      const message = axios.isAxiosError<{ message?: string }>(error)
+        ? error.response?.data?.message
+        : undefined;
+      console.error("Login Error:", error);
+      toast.error(message || "Login failed! Check your credentials.");
     } finally {
       setIsLoading(false);
     }

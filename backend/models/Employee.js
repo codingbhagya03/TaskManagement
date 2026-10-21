@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 
 const EmployeeSchema = new mongoose.Schema({
   name: { type: String },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }, // Store as plain text (Not recommended for security)
+  email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+  password: { type: String, required: true },
   // Add these fields for OTP-based password reset
   resetOTP: {
     type: String

@@ -3,6 +3,7 @@ const router = express.Router();
 const EmployeeModel = require('../models/Employee');
 const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
+const bcrypt = require('bcryptjs');
 
 // Ensure environment variables are loaded
 dotenv.config();
@@ -167,8 +168,11 @@ router.post('/reset-password-with-otp', async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    // Update password
-    user.password = newPassword;
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
 
     // Clear OTP fields
     user.resetOTP = undefined;

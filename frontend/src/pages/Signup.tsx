@@ -11,35 +11,36 @@ const Signup: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    axios.post('http://localhost:5000/register', {name,email,password})
-    
-    .then(result => {console.log(result)
-      navigate('/login')
-    })
-    .catch(err => console.log(err))
-    
-    // Simple validation
-    // if (!name || !email || !password || !confirmPassword) {
-    //   toast.error("Please fill in all fields");
-    //   return;
-    // }
-    
-    // if (password !== confirmPassword) {
-    //   toast.error("Passwords do not match");
-    //   return;
-    // }
-    
-    // // Demo signup functionality
-    // setIsLoading(true);
-    
-    // // Simulate API call
-    // setTimeout(() => {
-    //   toast.success("Account created successfully!");
-    //   setIsLoading(false);
-    //   // In a real app, you would redirect after successful signup
-    // }, 1500);
+
+    if (!name.trim() || !email.trim() || !password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await axios.post("http://localhost:5000/register", {
+        name: name.trim(),
+        email: email.trim(),
+        password,
+      });
+      toast.success("Account created successfully. Please sign in.");
+      navigate("/login");
+    } catch (error: unknown) {
+      const message = axios.isAxiosError<{ message?: string }>(error)
+        ? error.response?.data?.message
+        : undefined;
+      console.error("Registration error:", error);
+      toast.error(message || "Could not create your account");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -62,6 +63,7 @@ const Signup: React.FC = () => {
                 id="name"
                 type="text"
                 placeholder="Enter your full name"
+                required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-colors"
@@ -77,6 +79,7 @@ const Signup: React.FC = () => {
                 id="email"
                 type="email"
                 placeholder="Enter your email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-colors"
@@ -92,6 +95,8 @@ const Signup: React.FC = () => {
                 id="password"
                 type="password"
                 placeholder="Create a password"
+                minLength={6}
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-colors"

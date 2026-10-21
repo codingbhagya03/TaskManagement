@@ -1,9 +1,10 @@
-require("dotenv").config();
+require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
 const EmployeeModel = require("./models/Employee");
 const todoRoutes = require("./routes/todoRoutes");
 const taskRoutes = require("./routes/taskRoutes");
@@ -19,40 +20,70 @@ const app = express();
 
 // ✅ Middleware
 app.use(express.json());
+const allowedOrigins = new Set([
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  ...(process.env.FRONTEND_ORIGIN || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+]);
+
 app.use(
   cors({
-    origin: "http://localhost:3000", // Change this to your frontend URL
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin not allowed by CORS: ${origin}`));
+    },
     credentials: true,
   })
 );
 app.use(cookieParser());
 
-// ✅ Database Connection
-mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.log("❌ MongoDB Connection Error:", err));
-
 // ✅ JWT Secret Key
-const JWT_SECRET = process.env.JWT_SECRET || "ac53d90a08cd7ca18d63dd284a0c6f81a03808c69fd1054889314220e9d1d966";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is missing from backend/.env");
+}
+
+app.get("/", (req, res) => {
+  res.json({
+    message: "TaskManagement API is running",
+    database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+  });
+});
 
 // 🟢 **User Registration Route (Signup)**
 app.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const name = req.body.name?.trim();
+    const email = req.body.email?.trim().toLowerCase();
+    const password = req.body.password;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required" });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
 
     // Check if user exists
     const existingUser = await EmployeeModel.findOne({ email });
     if (existingUser) return res.status(400).json({ message: "Email already in use" });
 
-    // ✅ Store plain text password (Not Recommended for security)
-    const newUser = new EmployeeModel({ name, email, password });
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const newUser = new EmployeeModel({ name, email, password: hashedPassword });
     await newUser.save();
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
     console.error("Error in registration:", error);
-    res.status(500).json({ message: "Error registering user", error });
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "Email already in use" });
+    }
+    res.status(500).json({ message: "Error registering user" });
   }
 });
 
@@ -60,16 +91,28 @@ app.post("/register", async (req, res) => {
 // 🟢 **User Login Route (JWT in HTTP-only Cookie)**
 app.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
+    const { password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
 
     const user = await EmployeeModel.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Direct password comparison (in a production app, use bcrypt)
-    if (password !== user.password) {
+    const isHashedPassword = /^\$2[aby]\$/.test(user.password);
+    const passwordMatches = isHashedPassword
+      ? await bcrypt.compare(password, user.password)
+      : password === user.password;
+    if (!passwordMatches) {
       return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (!isHashedPassword) {
+      user.password = await bcrypt.hash(password, 12);
+      await user.save();
     }
 
     const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: "7d" });
@@ -140,13 +183,19 @@ app.put("/api/users/password", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check current password
-    if (currentPassword !== user.password) {
+    const isHashedPassword = /^\$2[aby]\$/.test(user.password);
+    const currentPasswordMatches = isHashedPassword
+      ? await bcrypt.compare(currentPassword, user.password)
+      : currentPassword === user.password;
+    if (!currentPasswordMatches) {
       return res.status(401).json({ message: "Current password is incorrect" });
     }
 
-    // Update password
-    user.password = newPassword;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
     await user.save();
 
     res.json({ message: "Password updated successfully" });
@@ -253,7 +302,7 @@ const authMiddleware = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
@@ -275,6 +324,21 @@ app.use("/api/events", authMiddleware, eventRoutes);
 app.use("/api/taskcategories", taskCategoryRoutes);
 app.use("/api/verification", authMiddleware, verificationRoutes); // Uncommented and added authMiddleware
 
-// ✅ Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// ✅ Start the server only after MongoDB is ready.
+const startServer = async () => {
+  const mongoUri = process.env.MONGO_URI;
+  if (!mongoUri) {
+    throw new Error("MONGO_URI is missing from backend/.env");
+  }
+
+  await mongoose.connect(mongoUri);
+  console.log("✅ MongoDB Connected");
+
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+};
+
+startServer().catch((error) => {
+  console.error("❌ Backend startup failed:", error.message);
+  process.exitCode = 1;
+});
